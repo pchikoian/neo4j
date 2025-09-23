@@ -1,0 +1,290 @@
+{{/* vim: set filetype=mustache: */}}
+{{/*
+Renders a value that contains template.
+Usage:
+{{ include "common.tplvalues.render" ( dict "value" .Values.path.to.the.Value "context" $) }}
+*/}}
+{{- define "common.tplvalues.render" -}}
+    {{- if typeIs "string" .value }}
+        {{- tpl .value .context }}
+    {{- else }}
+        {{- tpl (.value | toYaml) .context }}
+    {{- end }}
+{{- end -}}
+
+{{/*
+Return the proper image name
+*/}}
+{{- define "common.images.image" -}}
+{{- $registryName := .imageRoot.registry -}}
+{{- $repositoryName := .imageRoot.repository -}}
+{{- $separator := ":" -}}
+{{- $termination := .imageRoot.tag | toString -}}
+{{- if .global }}
+    {{- if .global.imageRegistry }}
+        {{- $registryName = .global.imageRegistry -}}
+    {{- end -}}
+{{- end -}}
+{{- if .imageRoot.digest }}
+    {{- $separator = "@" -}}
+    {{- $termination = .imageRoot.digest | toString -}}
+{{- end -}}
+{{- if $registryName }}
+    {{- printf "%s/%s%s%s" $registryName $repositoryName $separator $termination -}}
+{{- else -}}
+    {{- printf "%s%s%s"  $repositoryName $separator $termination -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the proper Docker Image Registry Secret Names (deprecated: use common.images.renderPullSecrets instead)
+*/}}
+{{- define "common.images.pullSecrets" -}}
+  {{- $pullSecrets := list }}
+
+  {{- if .global }}
+    {{- range .global.imagePullSecrets -}}
+      {{- $pullSecrets = append $pullSecrets . -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- range .images -}}
+    {{- range .pullSecrets -}}
+      {{- $pullSecrets = append $pullSecrets . -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- if (not (empty $pullSecrets)) }}
+imagePullSecrets:
+    {{- range $pullSecrets }}
+  - name: {{ . }}
+    {{- end }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for poddisruptionbudget.
+*/}}
+{{- define "common.capabilities.policy.apiVersion" -}}
+{{- if semverCompare "<1.21-0" .Capabilities.KubeVersion.Version -}}
+{{- print "policy/v1beta1" -}}
+{{- else -}}
+{{- print "policy/v1" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns the proper service account name depending if an explicit service account name is set
+in the values file. If the name is not set it will default to either common.names.fullname if serviceAccount.create
+is true or default otherwise.
+*/}}
+{{- define "common.names.serviceAccountName" -}}
+    {{- if .Values.serviceAccount.create -}}
+        {{ default (include "common.names.fullname" .) .Values.serviceAccount.name }}
+    {{- else -}}
+        {{ default "default" .Values.serviceAccount.name }}
+    {{- end -}}
+{{- end -}}
+
+{{/*
+Return the target Kubernetes version
+*/}}
+{{- define "common.capabilities.kubeVersion" -}}
+{{- if .Values.kubeVersion -}}
+    {{- .Values.kubeVersion -}}
+{{- else -}}
+    {{- .Capabilities.KubeVersion.Version -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for deployment.
+*/}}
+{{- define "common.capabilities.deployment.apiVersion" -}}
+{{- if semverCompare "<1.14-0" (include "common.capabilities.kubeVersion" .) -}}
+{{- print "extensions/v1beta1" -}}
+{{- else -}}
+{{- print "apps/v1" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for statefulset.
+*/}}
+{{- define "common.capabilities.statefulset.apiVersion" -}}
+{{- if semverCompare "<1.14-0" (include "common.capabilities.kubeVersion" .) -}}
+{{- print "apps/v1beta2" -}}
+{{- else -}}
+{{- print "apps/v1" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for daemonset.
+*/}}
+{{- define "common.capabilities.daemonset.apiVersion" -}}
+{{- if semverCompare "<1.14-0" (include "common.capabilities.kubeVersion" .) -}}
+{{- print "extensions/v1beta1" -}}
+{{- else -}}
+{{- print "apps/v1" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for networkpolicy.
+*/}}
+{{- define "common.capabilities.networkPolicy.apiVersion" -}}
+{{- if semverCompare "<1.7-0" (include "common.capabilities.kubeVersion" .) -}}
+{{- print "extensions/v1beta1" -}}
+{{- else -}}
+{{- print "networking.k8s.io/v1" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for cronjob.
+*/}}
+{{- define "common.capabilities.cronjob.apiVersion" -}}
+{{- if semverCompare "<1.21-0" (include "common.capabilities.kubeVersion" .) -}}
+{{- print "batch/v1beta1" -}}
+{{- else -}}
+{{- print "batch/v1" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns true if the ingressClassname field is supported
+Usage:
+{{ include "common.ingress.supportsIngressClassname" . }}
+*/}}
+{{- define "common.ingress.supportsIngressClassname" -}}
+{{- if semverCompare "<1.18-0" (include "common.capabilities.kubeVersion" .) -}}
+    {{- print "false" -}}
+{{- else -}}
+    {{- print "true" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns true if the pathType field is supported
+Usage:
+{{ include "common.ingress.supportsPathType" . }}
+*/}}
+{{- define "common.ingress.supportsPathType" -}}
+{{- if semverCompare "<1.18-0" (include "common.capabilities.kubeVersion" .) -}}
+    {{- print "false" -}}
+{{- else -}}
+    {{- print "true" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the proper Storage Class
+*/}}
+{{- define "common.storage.class" -}}
+{{/*
+Helm 2.11 supports the assignment of a value to a variable defined in a different scope,
+but Helm 2.9 and 2.10 does not support it, so we need to implement this if-else logic.
+*/}}
+{{- if .global -}}
+    {{- if .global.storageClass -}}
+        {{- if (eq "-" .global.storageClass) -}}
+            {{- printf "storageClassName: \"\"" -}}
+        {{- else }}
+            {{- printf "storageClassName: %s" .global.storageClass -}}
+        {{- end -}}
+    {{- else -}}
+        {{- if .persistence.storageClass -}}
+              {{- if (eq "-" .persistence.storageClass) -}}
+                  {{- printf "storageClassName: \"\"" -}}
+              {{- else }}
+                  {{- printf "storageClassName: %s" .persistence.storageClass -}}
+              {{- end -}}
+        {{- end -}}
+    {{- end -}}
+{{- else -}}
+    {{- if .persistence.storageClass -}}
+        {{- if (eq "-" .persistence.storageClass) -}}
+            {{- printf "storageClassName: \"\"" -}}
+        {{- else }}
+            {{- printf "storageClassName: %s" .persistence.storageClass -}}
+        {{- end -}}
+    {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Affinities presets
+*/}}
+{{- define "common.affinities.nodes.soft" -}}
+preferredDuringSchedulingIgnoredDuringExecution:
+  - preference:
+      matchExpressions:
+        - key: {{ .key }}
+          operator: In
+          values:
+            {{- range .values }}
+            - {{ . | quote }}
+            {{- end }}
+    weight: 1
+{{- end -}}
+
+{{- define "common.affinities.nodes.hard" -}}
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+    - matchExpressions:
+        - key: {{ .key }}
+          operator: In
+          values:
+            {{- range .values }}
+            - {{ . | quote }}
+            {{- end }}
+{{- end -}}
+
+{{- define "common.affinities.pods.soft" -}}
+{{- $component := default "" .component -}}
+{{- $extraMatchLabels := default (dict) .extraMatchLabels -}}
+preferredDuringSchedulingIgnoredDuringExecution:
+  - podAffinityTerm:
+      labelSelector:
+        matchLabels: {{- (include "common.labels.matchLabels" .context) | nindent 10 }}
+          {{- if not (empty $component) }}
+          {{ printf "app.kubernetes.io/component: %s" $component }}
+          {{- end }}
+          {{- range $key, $value := $extraMatchLabels }}
+          {{ $key }}: {{ $value | quote }}
+          {{- end }}
+      topologyKey: kubernetes.io/hostname
+    weight: 1
+{{- end -}}
+
+{{- define "common.affinities.pods.hard" -}}
+{{- $component := default "" .component -}}
+{{- $extraMatchLabels := default (dict) .extraMatchLabels -}}
+requiredDuringSchedulingIgnoredDuringExecution:
+  - labelSelector:
+      matchLabels: {{- (include "common.labels.matchLabels" .context) | nindent 8 }}
+        {{- if not (empty $component) }}
+        {{ printf "app.kubernetes.io/component: %s" $component }}
+        {{- end }}
+        {{- range $key, $value := $extraMatchLabels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+    topologyKey: kubernetes.io/hostname
+{{- end -}}
+
+{{- define "common.affinities.nodes" -}}
+  {{- if eq .type "soft" }}
+    {{- include "common.affinities.nodes.soft" . -}}
+  {{- else if eq .type "hard" }}
+    {{- include "common.affinities.nodes.hard" . -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "common.affinities.pods" -}}
+  {{- if eq .type "soft" }}
+    {{- include "common.affinities.pods.soft" . -}}
+  {{- else if eq .type "hard" }}
+    {{- include "common.affinities.pods.hard" . -}}
+  {{- end -}}
+{{- end -}}

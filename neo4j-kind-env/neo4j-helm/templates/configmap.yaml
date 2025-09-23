@@ -1,0 +1,24 @@
+{{- if (include "neo4j.createConfigmap" .) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neo4j.configmapName" . }}
+  namespace: {{ include "neo4j.namespace" . | quote }}
+  labels: {{- include "neo4j.labels" . | nindent 4 }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+data:
+  {{- range $key, $value := .Values.configuration }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+
+  # Cluster discovery configuration
+  dbms.kubernetes.label_selector: "app.kubernetes.io/name={{ include "neo4j.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+  dbms.kubernetes.service_port_name: "tcp-cluster"
+  dbms.kubernetes.cluster_domain: "cluster.local"
+
+  # Pod-specific configuration
+  NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+  NEO4J_AUTH: "neo4j/$(NEO4J_PASSWORD)"
+{{- end }}

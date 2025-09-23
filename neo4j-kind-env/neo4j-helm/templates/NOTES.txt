@@ -1,0 +1,52 @@
+1. Get the Neo4j application URL by running these commands:
+
+{{- if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ include "neo4j.namespace" . }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "neo4j.serviceName" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ include "neo4j.namespace" . }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace {{ include "neo4j.namespace" . }} svc -w {{ include "neo4j.serviceName" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ include "neo4j.namespace" . }} {{ include "neo4j.serviceName" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.ports.http }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ include "neo4j.namespace" . }} -l "app.kubernetes.io/name={{ include "neo4j.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ include "neo4j.namespace" . }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:7474 to use your application"
+  kubectl --namespace {{ include "neo4j.namespace" . }} port-forward $POD_NAME 7474:$CONTAINER_PORT
+{{- end }}
+
+2. Get your Neo4j password by running:
+
+{{- if .Values.auth.existingSecret }}
+  export NEO4J_PASSWORD=$(kubectl get secret --namespace {{ include "neo4j.namespace" . }} {{ .Values.auth.existingSecret }} -o jsonpath="{.data.{{ .Values.auth.existingSecretPasswordKey }}}" | base64 --decode)
+{{- else }}
+  export NEO4J_PASSWORD=$(kubectl get secret --namespace {{ include "neo4j.namespace" . }} {{ include "neo4j.secretName" . }} -o jsonpath="{.data.{{ include "neo4j.secretPasswordKey" . }}}" | base64 --decode)
+{{- end }}
+
+3. Connect to Neo4j:
+
+   Username: neo4j
+   Password: $NEO4J_PASSWORD
+
+4. To connect using Bolt protocol:
+
+   Port: 7687
+   Connection String: bolt://localhost:7687 (when using port-forward)
+
+** IMPORTANT NOTES **
+
+- This Neo4j cluster is configured to run {{ .Values.replicaCount }} replicas
+- The cluster uses StatefulSet for persistent storage
+- Each pod will have its own persistent volume
+- Cluster discovery is configured using Kubernetes service discovery
+
+{{- if not .Values.persistence.enabled }}
+WARNING: Persistence is disabled. Neo4j data will be lost when pods are restarted.
+{{- end }}
+
+{{- if not .Values.auth.enabled }}
+WARNING: Authentication is disabled. This is not recommended for production use.
+{{- end }}
+
+{{- include "neo4j.validateValues" . -}}

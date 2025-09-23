@@ -1,0 +1,20 @@
+apiVersion: v2
+name: neo4j
+description: A Helm chart for Neo4j graph database cluster
+type: application
+version: 0.1.0
+appVersion: "5.15.0"
+keywords:
+  - neo4j
+  - graph
+  - database
+  - nosql
+  - cluster
+home: https://neo4j.com/
+sources:
+  - https://github.com/neo4j/neo4j
+maintainers:
+  - name: Neo4j Helm Chart Maintainer
+    email: maintainer@example.com
+annotations:
+  category: Database
