@@ -2,5 +2,11 @@ dependencies:
 - name: neo4j
   repository: https://helm.neo4j.com/neo4j
   version: 2025.8.0
-digest: sha256:289fe1f01251aca45f9c4f6e7c375a0b991d3743181748fe29d907e96c74c270
-generated: "2025-09-24T06:27:31.928184871Z"
+- name: neo4j
+  repository: https://helm.neo4j.com/neo4j
+  version: 2025.8.0
+- name: neo4j-headless-service
+  repository: https://neo4j.github.io/helm-charts/
+  version: 2025.8.0
+digest: sha256:b35d8560c09faa2aa7fc1e32712c61c78032100d4fe4b694aec7c174105899c7
+generated: "2025-09-26T00:33:54.794384+08:00"

@@ -75,7 +75,7 @@ read -p "🚀 Do you want to deploy the chart for real? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "🚀 Deploying/Upgrading Neo4j chart..."
-    helm upgrade --install $RELEASE_NAME . --namespace $NAMESPACE --wait --timeout 5m
+    helm upgrade --install $RELEASE_NAME . --namespace $NAMESPACE --wait --timeout 15m
 
     echo "✅ Deployment completed!"
     echo ""

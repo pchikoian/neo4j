@@ -1,11 +1,10 @@
 # Default values for neo4j-custom chart
 # This is a YAML-formatted file.
 
-# Neo4j subchart configuration (using Neo4j official chart v2025.8.0)
-neo4j:
+# Common Neo4j configuration using YAML anchors
+_neo4j_common: &neo4j_common
   # Neo4j configuration
   neo4j:
-    name: "neo4j"
     edition: "community"
     acceptLicenseAgreement: "yes"
 
@@ -33,7 +32,7 @@ neo4j:
   # Service configuration
   services:
     neo4j:
-      enabled: true
+      enabled: false
       type: ClusterIP
       ports:
         http:
@@ -46,8 +45,74 @@ neo4j:
           enabled: true
           port: 7687
 
-    # Headless service for cluster discovery (disabled for single instance)
+    # Headless service for cluster discovery
     admin:
       enabled: false
 
   # Additional custom configurations can be added here
+
+# Neo4j Instance 1 configuration
+neo4j-instance1:
+  <<: *neo4j_common
+  neo4j:
+    name: "neo4j-instance1"
+  fullnameOverride: "neo4j-instance1"
+  nameOverride: "neo4j-instance1"
+
+# Neo4j Instance 2 configuration
+neo4j-instance2:
+  <<: *neo4j_common
+  neo4j:
+    name: "neo4j-instance2"
+  fullnameOverride: "neo4j-instance2"
+  nameOverride: "neo4j-instance2"
+
+# Neo4j Headless Service subchart configuration
+neo4j-headless-service:
+  neo4j:
+    name: "neo4j"
+  enabled: true
+  fullnameOverride: "neo4j-headless"
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    clusterIP: None
+    ports:
+      - name: http
+        port: 7474
+        targetPort: 7474
+        protocol: TCP
+      - name: bolt
+        port: 7687
+        targetPort: 7687
+        protocol: TCP
+      - name: discovery
+        port: 5000
+        targetPort: 5000
+        protocol: TCP
+      - name: raft
+        port: 7000
+        targetPort: 7000
+        protocol: TCP
+      - name: backup
+        port: 6362
+        targetPort: 6362
+        protocol: TCP
+      - name: metrics
+        port: 2004
+        targetPort: 2004
+        protocol: TCP
+
+    # Headless service specific settings
+    publishNotReadyAddresses: true
+    sessionAffinity: None
+
+  # Service annotations and labels
+  serviceAnnotations: {}
+  serviceLabels: {}
+
+  # Selector labels (should match Neo4j pods)
+  selector:
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/component: neo4j

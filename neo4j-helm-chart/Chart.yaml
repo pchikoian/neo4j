@@ -9,6 +9,11 @@ dependencies:
   - name: neo4j
     version: "2025.8.0"
     repository: https://helm.neo4j.com/neo4j
-      #- name: neo4j-headless-service
-      #  version: "2025.8.0"
-      #  repository: https://neo4j.github.io/helm-charts/
+    alias: neo4j-instance1
+  - name: neo4j
+    version: "2025.8.0"
+    repository: https://helm.neo4j.com/neo4j
+    alias: neo4j-instance2
+  - name: neo4j-headless-service
+    version: "2025.8.0"
+    repository: https://neo4j.github.io/helm-charts/
