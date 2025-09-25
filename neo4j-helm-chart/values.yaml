@@ -1,0 +1,53 @@
+# Default values for neo4j-custom chart
+# This is a YAML-formatted file.
+
+# Neo4j subchart configuration (using Neo4j official chart v2025.8.0)
+neo4j:
+  # Neo4j configuration
+  neo4j:
+    name: "neo4j"
+    edition: "community"
+    acceptLicenseAgreement: "yes"
+
+  # Authentication
+  auth:
+    enabled: true
+    # password: "your-password-here"  # Uncomment and set password
+
+  # Resources
+  resources:
+    cpu: "0.5"
+    memory: "2Gi"
+
+  # Persistence
+  volumes:
+    data:
+      mode: "dynamic"
+      dynamic:
+        storageClassName: "standard"
+        accessModes:
+          - ReadWriteOnce
+        requests:
+          storage: 10Gi
+
+  # Service configuration
+  services:
+    neo4j:
+      enabled: true
+      type: ClusterIP
+      ports:
+        http:
+          enabled: true
+          port: 7474
+        https:
+          enabled: false
+          port: 7473
+        bolt:
+          enabled: true
+          port: 7687
+
+    # Headless service for cluster discovery (disabled for single instance)
+    admin:
+      enabled: false
+
+  # Additional custom configurations can be added here

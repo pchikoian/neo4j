@@ -1,0 +1,30 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: neo4j-cluster
+nodes:
+  # Control plane node
+  - role: control-plane
+    kubeadmConfigPatches:
+    - |
+      kind: InitConfiguration
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "ingress-ready=true"
+    extraPortMappings:
+    # Neo4j HTTP port
+    - containerPort: 30474
+      hostPort: 7474
+      protocol: TCP
+    # Neo4j Bolt port
+    - containerPort: 30687
+      hostPort: 7687
+      protocol: TCP
+  # Worker nodes for Neo4j cluster
+  - role: worker
+  - role: worker
+  - role: worker
+# Mount Docker socket for building images if needed
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry]
+    config_path = "/etc/containerd/certs.d"

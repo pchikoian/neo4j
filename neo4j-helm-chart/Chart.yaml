@@ -1,0 +1,14 @@
+apiVersion: v2
+name: neo4j-custom
+description: A custom Helm chart for Neo4j using official Neo4j chart as dependency
+type: application
+version: 0.1.0
+appVersion: "5.0.0"
+
+dependencies:
+  - name: neo4j
+    version: "2025.8.0"
+    repository: https://helm.neo4j.com/neo4j
+      #- name: neo4j-headless-service
+      #  version: "2025.8.0"
+      #  repository: https://neo4j.github.io/helm-charts/
